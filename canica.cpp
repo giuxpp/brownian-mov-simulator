@@ -188,7 +188,7 @@ void printXcordenates();
 void drawCanica(canica * canicaPtr){
     glColor3f(canicaPtr->getRGB(RGB_R), canicaPtr->getRGB(RGB_G), canicaPtr->getRGB(RGB_B));    
     glRasterPos3f(canicaPtr->getCoorX(), canicaPtr->getCoorY(), 0.0); //(X, Y, ?, ? )
-    glBitmap(16, 16, 0, 0, 0, 0, canica16_bitmap);   
+    glBitmap(32, 32, 0, 0, 0, 0, canica_bitmap);   
 }
 
 #define Y_STEP             0.05
