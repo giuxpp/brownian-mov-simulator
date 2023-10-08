@@ -17,4 +17,5 @@ Brownian movement simulation with Canicas.
  *           g++ ./canica.cpp -o canica.out -lGL -lGLU -lglut
   
          Notes: Find demos/examples for using GL library at:
+         
  *           https://cs.lmu.edu/~ray/notes/openglexamples/ 
