@@ -10,6 +10,9 @@ Brownian movement simulation with Canicas.
             simulation for Brownian Movement of a bunch of balls. 
             The expectation is to get a Gaussian Bell at the end.
   
+         Requirements:
+            To have GL libraries installed.
+  
          Build Command:
             Since this code uses OpenGL library they need to be     
             called in the build command in the same order as in the
