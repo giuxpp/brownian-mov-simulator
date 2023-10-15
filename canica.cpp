@@ -33,22 +33,23 @@
 #include <cstdlib> //for random()
 
 /******** Configuration Macros ********/
-#define LOGS_ENABLED           1
-#define SIZE_OF_ARRAY          500
-#define SIMULATION_VELOCITY    (5)   //int {1-10}  1=max 10=min
-#define window_width           3000
-#define window_height          3000
-#define Y_STEP                 (0.008)
-#define X_STEP                 (0.007)          
-#define Y_COORDENATE_INIT      (1-0*Y_STEP)
-#define X_COORDENATE_INIT      (0.5)
-#define TOTAL_Y_POSITIONS      ((int)(1/Y_STEP))
-#define TOTAL_X_POSITIONS      TOTAL_Y_POSITIONS //30
-#define INITIAL_X_POSITION     ((int)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
-#define READY_FOR_NEXT_TRH     (0.95) //threshold of Y coordenates to launche next ball 
-#define BIT_MAP_SIZE           16
-#define BIT_MAP_IMAGE          canica16_bitmap //canica_bitmap  canica16_bitmap
-#define SCREEN_BROWNIAN_RANGE  (0.45)
+#define APP_MODE_RESTART_ENABLE   1
+#define LOGS_ENABLED              1
+#define SIZE_OF_ARRAY             500
+#define SIMULATION_VELOCITY       (2)   //int {1-10}  1=max 10=min
+#define window_width              3000
+#define window_height             3000
+#define Y_STEP                    (0.008)
+#define X_STEP                    (0.007)          
+#define Y_COORDENATE_INIT         (1-0*Y_STEP)
+#define X_COORDENATE_INIT         (0.5)
+#define TOTAL_Y_POSITIONS         ((int)(1/Y_STEP))
+#define TOTAL_X_POSITIONS         TOTAL_Y_POSITIONS //30
+#define INITIAL_X_POSITION        ((int)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
+#define READY_FOR_NEXT_TRH        (0.95) //threshold of Y coordenates to launche next ball 
+#define BIT_MAP_SIZE              16
+#define BIT_MAP_IMAGE             canica16_bitmap //canica_bitmap  canica16_bitmap
+#define SCREEN_BROWNIAN_RANGE     (0.448+2*Y_STEP)
 /***************************************/
 
 enum {
@@ -87,7 +88,7 @@ GLubyte canica16_bitmap[]={
 GLfloat randomFloat() {
   return (GLfloat)rand() / RAND_MAX;
 }
-
+int test_Index = 0;
 /***** Main Canica Class *****/
 class canica{
     private:
@@ -113,6 +114,16 @@ class canica{
             isDone = false;
             readyForNext = false;
             index = totalCanicas++;
+            printf("Canica %i index=%i \n",test_Index++,index);
+        }
+
+        void restart(){
+            x_coor = X_COORDENATE_INIT;
+            y_coor = Y_COORDENATE_INIT;
+            matrixCoor[COORDENATE_X] = INITIAL_X_POSITION;
+            matrixCoor[COORDENATE_Y] = TOTAL_Y_POSITIONS;
+            isDone = false;
+            readyForNext = false;
         }
 
         double getDisplayPositionX(){
@@ -170,6 +181,18 @@ using namespace std;
 
 /***** LOCAL FUNCTIONS *****/
 
+void appRestart(canica * ptr, int size){
+    /* restart every Canica */
+    for (int i=0; i<SIZE_OF_ARRAY; i++){
+        canicas[i].restart();
+    }                
+    /* restart Canicas Vector */
+    for (int i=0; i<TOTAL_X_POSITIONS; i++){
+        canicaVector[i] = 0;
+    }        
+}
+
+
 /* drawCanica: Print a bitmap in the screen */
 void drawCanica(canica * canicaPtr){
     glColor3f(canicaPtr->getRGB(RGB_R), canicaPtr->getRGB(RGB_G), canicaPtr->getRGB(RGB_B));    
@@ -222,7 +245,16 @@ void moveCanica(canica * canicaPtr){
             /* Increase vector in the X position */
             canicaVector[canicaPtr->matrixCoor[COORDENATE_X]]++;
             if (LOGS_ENABLED) cout<<"Canica "<<canicaPtr->index<<" llega al fondo en casilla (X): "<<canicaPtr->matrixCoor[COORDENATE_X]<<endl; 
-        }        
+
+            if (APP_MODE_RESTART_ENABLE!=0){
+                if ((canicas[SIZE_OF_ARRAY-1].getIsDone()==true)){ // if last canica is Done then restart app()
+                    appRestart(&canicas[0], SIZE_OF_ARRAY);
+                }
+            }      
+        }      
+        else{
+                  
+        }
     }  
 }
 
