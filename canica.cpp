@@ -35,8 +35,8 @@
 /******** Configuration Macros ********/
 #define APP_MODE_RESTART_ENABLE   1
 #define LOGS_ENABLED              1
-#define SIZE_OF_ARRAY             500
-#define SIMULATION_VELOCITY       (2)   //int {1-10}  1=max 10=min
+#define SIZE_OF_ARRAY             300
+#define SIMULATION_VELOCITY       (20)   //int {1-100..}  1=max 100..=min
 #define window_width              3000
 #define window_height             3000
 #define Y_STEP                    (0.008)
@@ -44,7 +44,7 @@
 #define Y_COORDENATE_INIT         (1-0*Y_STEP)
 #define X_COORDENATE_INIT         (0.5)
 #define TOTAL_Y_POSITIONS         ((int)(1/Y_STEP))
-#define TOTAL_X_POSITIONS         TOTAL_Y_POSITIONS //30
+#define TOTAL_X_POSITIONS         ((int)(1/X_STEP))    //TOTAL_Y_POSITIONS //30
 #define INITIAL_X_POSITION        ((int)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
 #define READY_FOR_NEXT_TRH        (0.95) //threshold of Y coordenates to launche next ball 
 #define BIT_MAP_SIZE              16
@@ -64,31 +64,32 @@ enum {
 };
 
 GLubyte canica16_bitmap[]={
-0b00000000, 0b00000000,
-0b00000111, 0b11100000,
-0b00011111, 0b11111000,
-0b00011111, 0b11111000,
-0b00111111, 0b11111100,
-0b00111111, 0b11111100,
-0b00111111, 0b11111100,
-0b01111111, 0b11111110,
-0b01111111, 0b11111110,
-0b01111111, 0b11111110,
-0b01111111, 0b11111110,
-0b00111111, 0b11111100,
-0b00111111, 0b11111100,
-0b00111111, 0b11111100,
-0b00011111, 0b11111000,
-0b00011111, 0b11111000,
-0b00000111, 0b11100000,
-0b00000000, 0b00000000,  
+    0b00000000,   0b00000000,
+    0b00000111,   0b11100000,
+    0b00011111,   0b11111000,
+    0b00011111,   0b11111000,
+    0b00111111,   0b11111100,
+    0b00111111,   0b11111100,
+    0b00111111,   0b11111100,
+    0b01111111,   0b11111110,
+    0b01111111,   0b11111110,
+    0b01111111,   0b11111110,
+    0b01111111,   0b11111110,
+    0b00111111,   0b11111100,
+    0b00111111,   0b11111100,
+    0b00111111,   0b11111100,
+    0b00011111,   0b11111000,
+    0b00011111,   0b11111000,
+    0b00000111,   0b11100000,
+    0b00000000,   0b00000000,  
 };
 
 // Return a random float in the range 0.0 to 1.0.
 GLfloat randomFloat() {
   return (GLfloat)rand() / RAND_MAX;
 }
-int test_Index = 0;
+
+
 /***** Main Canica Class *****/
 class canica{
     private:
@@ -114,7 +115,7 @@ class canica{
             isDone = false;
             readyForNext = false;
             index = totalCanicas++;
-            printf("Canica %i index=%i \n",test_Index++,index);
+            //printf("Canica %i index=%i \n",test_Index++,index);
         }
 
         void restart(){
@@ -273,30 +274,77 @@ void timer(int v) {
 // from 0 to 1 in the x and y directions, and -1 to 1 in z.
 void reshape(int width, int height) {
   glViewport(0, 0, width, height);
-  glMatrixMode(GL_PROJECTION);
+  glMatrixMode(GL_MODELVIEW);  //original: GL_PROJECTION
   glLoadIdentity();
   gluOrtho2D(0, 1, 0, 1);
 }
 
+void draw_nails(){        
+    float x = 0 + X_STEP/2 + 0.0005;
+    float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
+
+    glColor3f(1.0, 1.0, 1.0); /* Blanco */   
+
+    glBegin(GL_POINTS);
+        for (int i=0; i<TOTAL_X_POSITIONS; i++){            
+            for (int j=0; j<TOTAL_Y_POSITIONS; j++){
+                y += Y_STEP*2;
+                glVertex2f(x, y);
+            }            
+            x += X_STEP*2;
+            y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
+        }        
+    glEnd();
+}
+
+
+
+void draw_bars(){        
+    float x = 0 + X_STEP/2 + 0.001;
+    float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
+
+    glColor3f(0.4, 0.0, 1.0); /* Magenta */   
+
+    glBegin(GL_LINES);
+        for (int i=0; i<TOTAL_X_POSITIONS; i++){            
+            glVertex2f(x, -1.0);
+            glVertex2f(x, SCREEN_BROWNIAN_RANGE-Y_STEP/2);
+            x += X_STEP*2;
+        }            
+            
+    glEnd();
+}
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT); 
+    
+    /* Draw nails */
+    draw_nails();
+
+    /* Draw bars */
+    draw_bars();
+    
+    /* Draw Canicas */
     for (int i=0; i<SIZE_OF_ARRAY; i++){
         drawCanica(&canicas[i]);    
     }    
+
     glFlush(); // Giux: se necesita?????
 }
 
 int main(int argc, char** argv) {
     cout<<"Size of Vector (x) = "<<sizeof(canicaVector)/sizeof(int)<<endl;
+    
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     //glutInitWindowPosition(80, 80);
     glutInitWindowSize(window_width, window_height);    
-    glutCreateWindow("Canica Simulation");
+    glutCreateWindow("Brownian move Simulation");
     glutReshapeFunc(reshape);
     glutDisplayFunc(display);
     glutTimerFunc(100, timer, 0);
     // Aqui va la función para Mouse o Keyboard
+    
     glutMainLoop();
     
     return 0;
