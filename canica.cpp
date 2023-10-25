@@ -33,23 +33,27 @@
 #include <cstdlib> //for random()
 
 /******** Configuration Macros ********/
-#define APP_MODE_RESTART_ENABLE   1
-#define LOGS_ENABLED              1
-#define SIZE_OF_ARRAY             300
-#define SIMULATION_VELOCITY       (20)   //int {1-100..}  1=max 100..=min
-#define window_width              3000
-#define window_height             3000
-#define Y_STEP                    (0.008)
-#define X_STEP                    (0.007)          
-#define Y_COORDENATE_INIT         (1-0*Y_STEP)
+#define APP_MODE_RESTART_ENABLE   0
+#define LOGS_ENABLED              0
+#define SIZE_OF_ARRAY             200
+#define SIMULATION_VELOCITY       (5)   //int {1-100..}  1=max 100..=min
+#define window_width              1500
+#define window_height             2200
+#define Y_STEP                    (0.00195)
+#define X_STEP                    (0.0016)          
+#define Y_COORDENATE_INIT         (1.0)
 #define X_COORDENATE_INIT         (0.5)
-#define TOTAL_Y_POSITIONS         ((int)(1/Y_STEP))
-#define TOTAL_X_POSITIONS         ((int)(1/X_STEP))    //TOTAL_Y_POSITIONS //30
-#define INITIAL_X_POSITION        ((int)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
-#define READY_FOR_NEXT_TRH        (0.95) //threshold of Y coordenates to launche next ball 
+#define TOTAL_Y_POSITIONS         ((uint8_t)(1/Y_STEP))
+#define TOTAL_X_POSITIONS         ((uint8_t)(1/X_STEP))    
+#define SCREEN_BROWNIAN_RANGE     (0.52)
+#define READY_FOR_NEXT_TRH        (0.935) //threshold of Y coordenates to launche next ball 
+#define INITIAL_X_POSITION        14 //((uint8_t)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
+#define INITIAL_Y_POSITION        50
+
 #define BIT_MAP_SIZE              16
 #define BIT_MAP_IMAGE             canica16_bitmap //canica_bitmap  canica16_bitmap
-#define SCREEN_BROWNIAN_RANGE     (0.448+2*Y_STEP)
+#define Y_BOTTOM_COORDENATE       (2.5*Y_STEP) 
+#define TOTAL_BARS                (2*INITIAL_X_POSITION)
 /***************************************/
 
 enum {
@@ -84,10 +88,13 @@ GLubyte canica16_bitmap[]={
     0b00000000,   0b00000000,  
 };
 
-// Return a random float in the range 0.0 to 1.0.
-GLfloat randomFloat() {
-  return (GLfloat)rand() / RAND_MAX;
-}
+enum moveStates{
+    moveState_Down=0,
+    moveState_UpRight,
+    moveState_UpLeft,
+    moveState_noBrown,
+    moveState_done
+};
 
 
 /***** Main Canica Class *****/
@@ -102,27 +109,35 @@ class canica{
     public:
         int matrixCoor[2];
         static int totalCanicas;
-        int index;    
+        int index;  
+        int moveStep;
+        moveStates moveState;
 
         canica(){
-            color[RGB_R] = randomFloat();
-            color[RGB_G] = randomFloat();
-            color[RGB_B] = randomFloat();
+            color[RGB_R] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
+            color[RGB_G] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
+            color[RGB_B] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
             x_coor = X_COORDENATE_INIT;
             y_coor = Y_COORDENATE_INIT;
             matrixCoor[COORDENATE_X] = INITIAL_X_POSITION;
-            matrixCoor[COORDENATE_Y] = TOTAL_Y_POSITIONS;
+            matrixCoor[COORDENATE_Y] = INITIAL_Y_POSITION;
             isDone = false;
             readyForNext = false;
             index = totalCanicas++;
-            //printf("Canica %i index=%i \n",test_Index++,index);
+            moveState = moveState_Down;
+            moveStep = 0;
+            //printf("Canica index=%i matrix_X=%i Matrix_Y=%i\n",index,matrixCoor[COORDENATE_X],matrixCoor[COORDENATE_Y]);
+        }
+
+        ~canica (){
+
         }
 
         void restart(){
             x_coor = X_COORDENATE_INIT;
             y_coor = Y_COORDENATE_INIT;
             matrixCoor[COORDENATE_X] = INITIAL_X_POSITION;
-            matrixCoor[COORDENATE_Y] = TOTAL_Y_POSITIONS;
+            matrixCoor[COORDENATE_Y] = INITIAL_Y_POSITION;
             isDone = false;
             readyForNext = false;
         }
@@ -174,7 +189,7 @@ class canica{
 int canica::totalCanicas = 0; // init static variable of class canica
 canica canicas[SIZE_OF_ARRAY];
 
-int canicaVector[TOTAL_X_POSITIONS]={0};
+uint8_t canicaVector[TOTAL_BARS]={0};
 
 /***** STANDARD Namespace *****/
 using namespace std;
@@ -203,60 +218,100 @@ void drawCanica(canica * canicaPtr){
 
 /* moveCanica: Update X and Y coordenates of a canica Object */
 void moveCanica(canica * canicaPtr){
-    double dispPosition_y = canicaPtr->getDisplayPositionY() - Y_STEP;
-    double dispPosition_x = canicaPtr->getDisplayPositionX();  
+    double dispPosition_y = canicaPtr->getDisplayPositionY();
+    double dispPosition_x = canicaPtr->getDisplayPositionX(); 
+    int matrixCoor_X = canicaPtr->matrixCoor[0];
+    int matrixCoor_Y = canicaPtr->matrixCoor[1];    
  
     /* This conditions triggers the start of the next canica by setting "ReadyForNext" flag */
     if (dispPosition_y<READY_FOR_NEXT_TRH){
         canicaPtr->setIsReadyForNext(true);
     }
 
-    canicaPtr->matrixCoor[COORDENATE_Y]--;
-
-    /* Check if the canica can continue moving ... */
-    if ((canicaPtr->matrixCoor[COORDENATE_Y]>(canicaVector[canicaPtr->matrixCoor[COORDENATE_X]]) ) ) {                  
-        
-        /* If ball is in brownian range, make the x movement */
-        if (dispPosition_y>SCREEN_BROWNIAN_RANGE){        
-            //cout<<canicaPtr->matrixCoor[COORDENATE_X]<<endl;
-            if (rand()%2) {
-                dispPosition_x += X_STEP;      
-                canicaPtr->matrixCoor[COORDENATE_X] += 1;
-            } 
-            else {
-                dispPosition_x -= X_STEP;
-                canicaPtr->matrixCoor[COORDENATE_X] -= 1;
+    // Move X and Y coordenates depending on moving state 
+    switch (canicaPtr->moveState){
+        case moveState_Down:                        
+            if (dispPosition_y<SCREEN_BROWNIAN_RANGE){                        
+                canicaPtr->moveState = moveState_noBrown;
             }
-        
-        } else {
-            /* Actions to take when ball finished brownian movement 
-             * Nothing to do. Just keep going down in the same X position. */
-        }
-
-        /* Update canica object with the new x and y data */
-        canicaPtr->setDisplayPositionX(dispPosition_x);
-        canicaPtr->setDisplayPositionY(dispPosition_y);
-    }
-    else  { // here the Balls reach the bottom.
-        /* Next code should be executed only the first time */
-        if (canicaPtr->getIsDone()==false)
-        {
-            canicaPtr->setIsDone(true);    
-            canicaPtr->setDisplayPositionY(dispPosition_y);
-            /* Increase vector in the X position */
-            canicaVector[canicaPtr->matrixCoor[COORDENATE_X]]++;
-            if (LOGS_ENABLED) cout<<"Canica "<<canicaPtr->index<<" llega al fondo en casilla (X): "<<canicaPtr->matrixCoor[COORDENATE_X]<<endl; 
-
-            if (APP_MODE_RESTART_ENABLE!=0){
-                if ((canicas[SIZE_OF_ARRAY-1].getIsDone()==true)){ // if last canica is Done then restart app()
-                    appRestart(&canicas[0], SIZE_OF_ARRAY);
+            else{                        
+                if (canicaPtr->moveStep<18u){
+                    canicaPtr->moveStep++;
+                    dispPosition_y -= Y_STEP;
                 }
-            }      
-        }      
-        else{
-                  
-        }
-    }  
+                else{
+                    canicaPtr->moveStep=0;
+                    if (rand()%2){
+                        canicaPtr->moveState=moveState_UpLeft;
+                        matrixCoor_X -= 1;                        
+                    } else {
+                        canicaPtr->moveState=moveState_UpRight;
+                        matrixCoor_X += 1;
+                    }                                                   
+                }
+            }                                                                                          
+            break;
+        
+        case moveState_UpRight:
+                    if (canicaPtr->moveStep<24u){
+                        canicaPtr->moveStep++;
+                        dispPosition_y += 0.2595*Y_STEP;
+                        dispPosition_x += 0.25*X_STEP;
+                    }
+                    else{
+                        canicaPtr->moveStep=0;
+                        //canicaPtr->matrixCoor[COORDENATE_Y] -= 1;
+                        canicaPtr->moveState=moveState_Down;
+                    }  
+                break;
+
+        case moveState_UpLeft:
+                    if (canicaPtr->moveStep<24u){
+                        canicaPtr->moveStep++;
+                        dispPosition_y += 0.2595*Y_STEP;
+                        dispPosition_x -= 0.25*X_STEP;
+                    }
+                    else{
+                        canicaPtr->moveStep=0;
+                        //canicaPtr->matrixCoor[COORDENATE_Y] -= 1;
+                        canicaPtr->moveState=moveState_Down;
+                    }  
+                break;  
+        
+        case moveState_noBrown:                    
+                if ((matrixCoor_Y>(canicaVector[matrixCoor_X]+1) ) && (dispPosition_y>Y_BOTTOM_COORDENATE) ) {                  
+                        dispPosition_y -= Y_STEP;
+                        if (canicaPtr->moveStep++ >= 6){                            
+                            canicaPtr->moveStep = 0;
+                            matrixCoor_Y -= 1;
+                        }                    
+                }
+                else {
+                    // here the Balls reach the bottom.
+                    canicaPtr->moveState=moveState_done;
+                    canicaVector[matrixCoor_X] = matrixCoor_Y;
+
+                    cout<<"Canica "<<canicaPtr->index<<"is done in";
+                    cout<<" CoorX="<<canicaPtr->matrixCoor[0];                         
+                    cout<<" CoorY="<<canicaPtr->matrixCoor[1];
+                    cout<<endl;
+                }
+                break;
+
+        case moveState_done:
+                /* no move to be done */
+                break;
+
+        default: 
+                canicaPtr->moveState=moveState_Down;
+                break;  
+    }
+    
+    /* Update canica object with the new x and y data */
+    canicaPtr->setDisplayPositionX(dispPosition_x);
+    canicaPtr->setDisplayPositionY(dispPosition_y);
+    canicaPtr->matrixCoor[0] = matrixCoor_X;
+    canicaPtr->matrixCoor[1] = matrixCoor_Y;
 }
 
 void timer(int v) {      
@@ -280,42 +335,42 @@ void reshape(int width, int height) {
 }
 
 void draw_nails(){        
-    float x = 0 + X_STEP/2 + 0.0005;
-    float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
+    const float offset = 0.5 + 4.5*X_STEP;
+    float x = offset-6*X_STEP;
+    float y = Y_COORDENATE_INIT-Y_STEP*4;
 
     glColor3f(1.0, 1.0, 1.0); /* Blanco */   
 
     glBegin(GL_POINTS);
-        for (int i=0; i<TOTAL_X_POSITIONS; i++){            
-            for (int j=0; j<TOTAL_Y_POSITIONS; j++){
-                y += Y_STEP*2;
-                glVertex2f(x, y);
-            }            
-            x += X_STEP*2;
-            y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
-        }        
+        for (int i=2; i<TOTAL_BARS-5; i++){            
+            for (int j=0; j<i; j++){            
+                glVertex2f(x, y);               
+                x+=X_STEP*12;                 
+            }       
+            y-= Y_STEP*12;     
+            x=offset-i*6*X_STEP;
+        }   
     glEnd();
 }
 
-
-
 void draw_bars(){        
-    float x = 0 + X_STEP/2 + 0.001;
+    float x = 0.20+11*6*X_STEP;
     float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
 
-    glColor3f(0.4, 0.0, 1.0); /* Magenta */   
+    glColor3f(0.5, 0.6, 0.5); /*  */   
 
     glBegin(GL_LINES);
-        for (int i=0; i<TOTAL_X_POSITIONS; i++){            
-            glVertex2f(x, -1.0);
-            glVertex2f(x, SCREEN_BROWNIAN_RANGE-Y_STEP/2);
-            x += X_STEP*2;
-        }            
-            
+        for (int i=0; i<TOTAL_BARS-6; i++){            
+            glVertex2f(x, 0.0);
+            glVertex2f(x, SCREEN_BROWNIAN_RANGE);
+            x += 2*6*X_STEP;
+        }                        
     glEnd();
 }
 
 void display() {
+    //glClearColor(0.25, 0.50, 0.10, 0.5); // green
+    glClearColor(0.10, 0.0, 0.0, 0.5); // 
     glClear(GL_COLOR_BUFFER_BIT); 
     
     /* Draw nails */
@@ -342,7 +397,7 @@ int main(int argc, char** argv) {
     glutCreateWindow("Brownian move Simulation");
     glutReshapeFunc(reshape);
     glutDisplayFunc(display);
-    glutTimerFunc(100, timer, 0);
+    glutTimerFunc(SIMULATION_VELOCITY, timer, 0);
     // Aqui va la función para Mouse o Keyboard
     
     glutMainLoop();
