@@ -35,7 +35,7 @@
 /******** Configuration Macros ********/
 #define APP_MODE_RESTART_ENABLE   0
 #define LOGS_ENABLED              0
-#define SIZE_OF_ARRAY             200
+#define SIZE_OF_ARRAY             500
 #define SIMULATION_VELOCITY       (5)   //int {1-100..}  1=max 100..=min
 #define window_width              1500
 #define window_height             2200
@@ -114,9 +114,9 @@ class canica{
         moveStates moveState;
 
         canica(){
-            color[RGB_R] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
-            color[RGB_G] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
-            color[RGB_B] = (float)(rand()%10)/10;  //randomFloat 0.0 - 1.0 ;
+            color[RGB_R] = (float)(rand()%15)/10;  //randomFloat 0.0 - 1.0 ;
+            color[RGB_G] = (float)(rand()%18)/10;  //randomFloat 0.0 - 1.0 ;
+            color[RGB_B] = (float)(rand()%15)/10;  //randomFloat 0.0 - 1.0 ;
             x_coor = X_COORDENATE_INIT;
             y_coor = Y_COORDENATE_INIT;
             matrixCoor[COORDENATE_X] = INITIAL_X_POSITION;
@@ -335,7 +335,7 @@ void reshape(int width, int height) {
 }
 
 void draw_nails(){        
-    const float offset = 0.5 + 4.5*X_STEP;
+    const float offset = 0.498 + 4.5*X_STEP;
     float x = offset-6*X_STEP;
     float y = Y_COORDENATE_INIT-Y_STEP*4;
 
@@ -353,8 +353,28 @@ void draw_nails(){
     glEnd();
 }
 
+void draw_nails_shadow(){        
+    const float offset = 0.4984 + 4.5*X_STEP;
+    float x = offset-6*X_STEP;
+    float y = Y_COORDENATE_INIT-Y_STEP*4-0.0033;
+
+    glColor3f(0.4, 0.4, 0.4); /*  */   
+
+    glBegin(GL_POINTS);
+        for (int i=2; i<TOTAL_BARS-5; i++){            
+            for (int j=0; j<i; j++){            
+                glVertex2f(x, y);               
+                x+=X_STEP*12;                 
+            }       
+            y-= Y_STEP*12;     
+            x=offset-i*6*X_STEP;
+        }   
+    glEnd();
+}
+
+
 void draw_bars(){        
-    float x = 0.20+11*6*X_STEP;
+    float x = 0.201+11*5.85*X_STEP;
     float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
 
     glColor3f(0.5, 0.6, 0.5); /*  */   
@@ -375,6 +395,7 @@ void display() {
     
     /* Draw nails */
     draw_nails();
+    draw_nails_shadow();
 
     /* Draw bars */
     draw_bars();
