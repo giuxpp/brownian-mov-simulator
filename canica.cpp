@@ -31,28 +31,29 @@
 #include <cmath>
 #include <math.h>
 #include <cstdlib> //for random()
+#include <ctime>
 
 /******** Configuration Macros ********/
 #define APP_MODE_RESTART_ENABLE   0
 #define LOGS_ENABLED              0
-#define SIZE_OF_ARRAY             500
-#define SIMULATION_VELOCITY       (5)   //int {1-100..}  1=max 100..=min
-#define window_width              1500
-#define window_height             2200
-#define Y_STEP                    (0.00195)
-#define X_STEP                    (0.0016)          
-#define Y_COORDENATE_INIT         (1.0)
+#define SIZE_OF_ARRAY             100
+#define SIMULATION_VELOCITY       (4)   //int {1-100..}  1=max 100..=min
+#define window_width              800
+#define window_height             800
+#define Y_STEP                    (0.0008)
+#define X_STEP                    (0.001)          
+#define Y_COORDENATE_INIT         (0.75)
 #define X_COORDENATE_INIT         (0.5)
 #define TOTAL_Y_POSITIONS         ((uint8_t)(1/Y_STEP))
 #define TOTAL_X_POSITIONS         ((uint8_t)(1/X_STEP))    
 #define SCREEN_BROWNIAN_RANGE     (0.52)
-#define READY_FOR_NEXT_TRH        (0.935) //threshold of Y coordenates to launche next ball 
+#define READY_FOR_NEXT_TRH        (0.72) //threshold of Y coordenates to launche next ball 
 #define INITIAL_X_POSITION        14 //((uint8_t)(TOTAL_X_POSITIONS/2))   // initial position of X coordenate in the Bars vector
 #define INITIAL_Y_POSITION        50
 
 #define BIT_MAP_SIZE              16
 #define BIT_MAP_IMAGE             canica16_bitmap //canica_bitmap  canica16_bitmap
-#define Y_BOTTOM_COORDENATE       (2.5*Y_STEP) 
+#define Y_BOTTOM_COORDENATE       (0.255) 
 #define TOTAL_BARS                (2*INITIAL_X_POSITION)
 /***************************************/
 
@@ -241,6 +242,7 @@ void moveCanica(canica * canicaPtr){
                 }
                 else{
                     canicaPtr->moveStep=0;
+                    srand(time(0));//seed the rand function
                     if (rand()%2){
                         canicaPtr->moveState=moveState_UpLeft;
                         matrixCoor_X -= 1;                        
@@ -331,7 +333,7 @@ void reshape(int width, int height) {
   glViewport(0, 0, width, height);
   glMatrixMode(GL_MODELVIEW);  //original: GL_PROJECTION
   glLoadIdentity();
-  gluOrtho2D(0, 1, 0, 1);
+  gluOrtho2D(0.35, 0.65, 0.25, 0.75);
 }
 
 void draw_nails(){        
@@ -342,7 +344,7 @@ void draw_nails(){
     glColor3f(1.0, 1.0, 1.0); /* Blanco */   
 
     glBegin(GL_POINTS);
-        for (int i=2; i<TOTAL_BARS-5; i++){            
+        for (int i=2; i<TOTAL_BARS-2; i++){            
             for (int j=0; j<i; j++){            
                 glVertex2f(x, y);               
                 x+=X_STEP*12;                 
@@ -361,7 +363,7 @@ void draw_nails_shadow(){
     glColor3f(0.4, 0.4, 0.4); /*  */   
 
     glBegin(GL_POINTS);
-        for (int i=2; i<TOTAL_BARS-5; i++){            
+        for (int i=2; i<TOTAL_BARS-2; i++){            
             for (int j=0; j<i; j++){            
                 glVertex2f(x, y);               
                 x+=X_STEP*12;                 
@@ -374,16 +376,16 @@ void draw_nails_shadow(){
 
 
 void draw_bars(){        
-    float x = 0.201+11*5.85*X_STEP;
+    float x = 0.35+8.5*X_STEP;
     float y = SCREEN_BROWNIAN_RANGE-Y_STEP/2;
 
     glColor3f(0.5, 0.6, 0.5); /*  */   
 
     glBegin(GL_LINES);
-        for (int i=0; i<TOTAL_BARS-6; i++){            
+        for (int i=0; i<=TOTAL_BARS; i++){            
             glVertex2f(x, 0.0);
             glVertex2f(x, SCREEN_BROWNIAN_RANGE);
-            x += 2*6*X_STEP;
+            x += 12*X_STEP;
         }                        
     glEnd();
 }
